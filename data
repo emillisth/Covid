@@ -1,0 +1,92 @@
+SELECT *
+FROM `may-31.COV.vaccin` 
+order by 4
+
+SELECT *
+FROM `may-31.COV.death` 
+order by 4
+
+SELECT Location, date, total_cases, new_cases, total_deaths, population
+FROM `may-31.COV.death`
+order by 1,2 
+
+Looking at total cases vs total deaths
+ shows likelihod of dying if you get covid in your country
+
+SELECT Location, date, total_cases, total_deaths,(total_deaths/total_cases)*100 as DeathPercentage
+FROM `may-31.COV.death`
+Where location like '%Sweden%'
+order by 1,2 
+
+
+Looking at total cases vs population
+Shows what percentage of population got covid
+
+SELECT Location, date, total_cases, population, total_deaths,(total_cases/population)*100 as CasesPercentage
+FROM `may-31.COV.death`
+Where location like '%Sweden%'
+order by 1,2 
+
+ looking at countries with highest infection rate compared to population
+
+SELECT Location, population, MAX(total_cases) AS HighestInfectionCount, Max(total_cases/population)*100 as PercentPopulationInfected
+FROM `may-31.COV.death`
+GROUP BY location, population
+order by PercentPopulationInfected desc 
+
+
+Showing Countries with Highest Death Count per Population:
+
+SELECT Location, MAX(total_deaths) AS TotalDeathCount
+FROM `may-31.COV.death`
+Where continent is not null --To remove the continets and total 'world' amount.
+GROUP BY location
+order by  TotalDeathCount desc 
+ 
+
+    Showing total deaths per continent 
+
+SELECT continent, MAX(total_deaths) AS TotalDeath
+FROM `may-31.COV.death` 
+Where continent is not null
+GROUP BY continent
+ORDER BY TotalDeath desc
+
+ Global numbers total deaths:
+
+SELECT  SUM(new_cases) as global_cases, SUM(new_deaths) as total_deaths,SUM(new_deaths)/SUM(new_cases)*100 as DeathPercentage
+FROM `may-31.COV.death`
+Where continent is not null
+Group by date
+order by 1,2 
+
+Global numbers cases and deaths per day around the world.
+
+SELECT date, SUM(new_cases) as global_cases, SUM(new_deaths) as total_deaths,SUM(new_deaths)/SUM(new_cases)*100 as DeathPercentage
+FROM `may-31.COV.death`
+Where continent is not null
+Group by date
+order by 1,2 
+
+
+joining the 2 tables for vaccin and deaths
+
+SELECT *
+FROM `may-31.COV.death` AS dea
+JOIN  `may-31.COV.vaccin` AS vac
+    ON  dea.location = vac.location
+    and dea.date=vac.date
+
+
+
+Looking at Total Population vs Vaccinations here we use OVER partition to add every days new vaccins to how many already been vacinated.
+
+SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_Vaccinations,
+SUM(vac.new_vaccinations) OVER (Partition by dea.location order by dea.location,dea.date) as RollingPeopleVaccinated
+,(RollingPeopleVaccinated/population*100)
+FROM `may-31.COV.death` dea
+INNER JOIN  `may-31.COV.vaccin` vac
+    ON  dea.location = vac.location
+    and dea.date=vac.date
+WHERE dea.continent is not null
+order by 2,3
